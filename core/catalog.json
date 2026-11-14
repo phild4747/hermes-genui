@@ -1,5 +1,5 @@
 {
- "about": "A JSON list of blocks, each with a `type`, drawn in order; broken ones are skipped. Numbers only from tools or the user.",
+ "about": "JSON blocks in order; invalid blocks skipped. Use sourced numbers only.",
  "icons": [
   "mail",
   "rupee",

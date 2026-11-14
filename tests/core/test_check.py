@@ -3,6 +3,7 @@ import json
 import re
 
 import pytest
+
 from conftest import ROOT, load_plugin_package
 
 load_plugin_package()
@@ -234,7 +235,6 @@ def test_tiles_need_two_to_eight_titled_cards():
     assert check_blocks([{"type": "tiles", "items": [tile] * 9}]) == ["0: tiles needs 2-8 items"]
     assert check_blocks([{"type": "tiles", "items": [tile, {"title": "Nara"}, {"ask": "x"}]}]) == [
         "0.items.2: tile needs a title"]
-
 
 
 def test_tiles_allow_informational_cards_without_actions():

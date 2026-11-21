@@ -1,12 +1,15 @@
 ---
 name: compare
-description: "Compare 2-4 alternatives and recommend the best fit, including best way to, how should I, and implicit choices between workflows. Show important tradeoffs side by side before the verdict; use tabs only for optional deeper detail."
+description: >-
+  Compare 2-4 options side by side. Use for compare, X vs Y, which is better, pick between phones, plans,
+  places, cars or stocks; also best way to, how should I, and implicit choices between workflows.
+  Show important tradeoffs before the verdict; use tabs only for optional deeper detail.
 version: 0.1.0
 platforms: [linux, macos, windows]
 ---
 # Compare
 
-Use this for explicit comparisons ("X vs Y") AND recommendation questions ("what is the best way to...",
+Use this for explicit comparisons ("X vs Y") and recommendation questions ("what is the best way to...",
 "how should I...", "which approach fits?") when materially different approaches serve the goal. Respect the
 requested workflow: if proposing an alternative, identify how it differs before recommending it.
 For one stock in depth, use `stock-dashboard`; for 5 or more options, a ranked `list` or a single `table` is clearer.
@@ -24,7 +27,9 @@ For one stock in depth, use `stock-dashboard`; for 5 or more options, a ranked `
      text cards when qualitative distinctions need more room);
    - a concise recommendation after the comparison, with the key assumption or caveat;
    - a `source` line for outside facts.
-   - Use `tabs` only for OPTIONAL deep dives when each option has substantial unique detail. Never put the
+   - For stocks, put `{"type": "include", "id": "<market_history id>"}` on the board using the id from step 1.
+     Its board already contains the price cards and % change line; do not duplicate them.
+   - Use `tabs` only for optional deep dives when each option has substantial unique detail. Never put the
      essential side-by-side comparison behind a Compare tab.
    - Add `kpis` only for sourced numeric values that matter; add a chart only when real comparable trends
      materially change the decision. Do not manufacture metrics or a chart to fill a template.

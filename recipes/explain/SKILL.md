@@ -12,7 +12,8 @@ platforms: [linux, macos, windows]
 Use this when someone wants to understand how something works: a mechanism, a process, a system ("how does UPI work",
 "what happens when I type a URL", "explain transformers", "how does compound interest work"). For a one-line fact,
 just answer in text; to revise or be quizzed, use the `learn` recipe. For advice on which approach to take,
-especially when an alternative changes the user's requested workflow, use `compare` instead of forcing a mechanism diagram.
+especially when an alternative changes the user's requested workflow, use `compare` rather than forcing a
+mechanism diagram.
 
 ## Static vs interactive decision
 
@@ -36,7 +37,7 @@ Choose one primary presentation for the process.
 1. **Don't ask first.** Guess the level from how they asked (a student, a professional, just curious) and say it in
    one line of the reply ("Pitched for a curious beginner; no maths needed."). Offer "Simpler" and "More technical"
    buttons so they can move it.
-2. **Pick ONE concrete case and follow it** all the way through: the sentence "The animal didn't cross the street
+2. **Pick one concrete case and follow it** all the way through: the sentence "The animal didn't cross the street
    because it was", "₹1,00,000 at 10% for 30 years", "a ₹500 UPI payment". Every box, step and number is about it.
 3. **Check the facts.** For anything technical, dated or numeric, use web search. Never invent a number, a date or a
    name; leave out what you can't back up.

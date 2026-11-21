@@ -1,9 +1,6 @@
 ---
 name: compare
-description: >-
-  Compare 2-4 options side by side. Use for compare, X vs Y, which is better, pick between phones, plans,
-  places, cars or stocks; also best way to, how should I, and implicit choices between workflows.
-  Show important tradeoffs before the verdict; use tabs only for optional deeper detail.
+description: "Compare 2-4 options side by side. Use for compare, X vs Y, which is better, pick between phones, plans, places, cars or stocks; also best way to and how should I questions. Show tradeoffs before the verdict; use tabs for optional details."
 version: 0.1.0
 platforms: [linux, macos, windows]
 ---

@@ -28,6 +28,10 @@ For one stock in depth, use `stock-dashboard`; for 5 or more options, a ranked `
      essential side-by-side comparison behind a Compare tab.
    - Add `kpis` only for sourced numeric values that matter; add a chart only when real comparable trends
      materially change the decision. Do not manufacture metrics or a chart to fill a template.
+   - State the verdict once, close to the tradeoffs. Do not repeat it in the opening reply, a highlighted callout,
+     and closing prose. Save prominent callouts for material risks or exceptions.
+   - For short procedural next steps, use concise reply text or a numbered checklist. Avoid decorative list cards
+     whose avatar initials or icons have no meaning; do not create a second large board for a few routine steps.
    - Avoid repeating the same points in tabs, tables, callouts and reply prose.
 4. **Reply** with one sentence, then the tag on its own line.
 

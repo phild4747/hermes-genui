@@ -1,6 +1,9 @@
 ---
 name: explain
-description: "Explain how something works: explain, how does X work, walk me through, what happens when. Show a static flow for simple processes; interactive steps only for meaningful state changes. For best-way or recommendation questions comparing workflows, prefer compare."
+description: >-
+  Explain how something works: explain, how does X work, walk me through, what happens when, a simulation of
+  a quantity over time, or a stack of layers. Show a static flow for simple processes and interactive steps
+  only for meaningful state changes. For best-way or recommendation questions comparing workflows, prefer compare.
 version: 0.2.0
 platforms: [linux, macos, windows]
 ---
@@ -13,7 +16,7 @@ especially when an alternative changes the user's requested workflow, use `compa
 
 ## Static vs interactive decision
 
-Choose ONE primary presentation for the process.
+Choose one primary presentation for the process.
 
 - **Default to a static `flow`** when the user can understand the complete
   sequence from the node labels and notes. A process having multiple stages
@@ -22,7 +25,7 @@ Choose ONE primary presentation for the process.
   as accumulated contents, repeated computation, evolving values, or state
   that cannot be understood as clearly in the static diagram.
 - Moving the highlight, sending a decorative packet, or revealing another
-  sentence about an already visible node does NOT count as meaningful change.
+  sentence about an already visible node does not count as meaningful change.
 - Do not add `steps` to a simple static flow as a second explanation of the
   same information. If a static flow is sufficient, stop there.
 - Preserve interactive walkthroughs when the user requests a genuine
@@ -38,15 +41,14 @@ Choose ONE primary presentation for the process.
 3. **Check the facts.** For anything technical, dated or numeric, use web search. Never invent a number, a date or a
    name; leave out what you can't back up.
 4. **Choose the stage by the mechanism's shape**, one stage block per board (a second only for "More technical"):
-   - simple, self-explanatory chain → a static `flow` with concise `note` text; NO `steps`;
+   - simple, self-explanatory chain → a static `flow` with concise `note` text; no `steps`;
    - complex process with meaningful changing state → a `flow` walked by `steps`;
    - a quantity over time → `simulate` (its formulas are worked out live; never do that maths in text);
    - a stack of layers or levels → `layers`.
 5. **If using interactive steps, make each one earn its click.** Use them only if the flow changes meaningfully,
    not merely to highlight boxes or reveal text. For a stepped flow, 4-8 steps, each with at most 2 sentences and its
    `node`; give it `holds` (what boxes hold from now on), `send: true` (a packet slides along the arrow from the box
-   lit before) and, inside a repeated `group` with a `count`, `tick` (it runs again that many times). A step that only
-   moves the highlight is allowed, but prefer a real change.
+   lit before) and, inside a repeated `group` with a `count`, `tick` (it runs again that many times).
 6. **Numbers.** Shapes, labels and positions are yours to choose; values, weights and counts come from a source or a
    formula. Label anything made up for the picture: a `badge` "numbers illustrative" (tone warn) near the stage.
 7. **Lay it out** with one `show_blocks` call: a `heading` with the question; a `row` with a `badge` naming the level

@@ -1,6 +1,6 @@
 ---
 name: explain
-description: "Explain a mechanism or process: how X works, what happens when, or walk through a complex sequence. Use static flows for simple processes and interactive steps only when the state meaningfully changes. For best-way, how-should-I, or recommendation questions with alternative approaches, prefer compare."
+description: "Explain how something works: explain, how does X work, walk me through, what happens when. Show a static flow for simple processes; interactive steps only for meaningful state changes. For best-way or recommendation questions comparing workflows, prefer compare."
 version: 0.2.0
 platforms: [linux, macos, windows]
 ---

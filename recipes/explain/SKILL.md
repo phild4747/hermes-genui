@@ -1,9 +1,6 @@
 ---
 name: explain
-description: >-
-  Explain how something works: explain, how does X work, walk me through, what happens when, a simulation of
-  a quantity over time, or a stack of layers. Show a static flow for simple processes and interactive steps
-  only for meaningful state changes. For best-way or recommendation questions comparing workflows, prefer compare.
+description: "Explain how something works: explain, how does X work, walk me through, what happens when, a simulation of a quantity over time, or a stack of layers. Use static flows for simple processes and steps for meaningful state changes; use compare for best-way recommendations."
 version: 0.2.0
 platforms: [linux, macos, windows]
 ---

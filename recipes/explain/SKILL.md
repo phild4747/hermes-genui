@@ -9,7 +9,7 @@ platforms: [linux, macos, windows]
 Use this when someone wants to understand how something works: a mechanism, a process, a system ("how does UPI work",
 "what happens when I type a URL", "explain transformers", "how does compound interest work"). For a one-line fact,
 just answer in text; to revise or be quizzed, use the `learn` recipe. For advice on which approach to take,
-especially when an alternative changes the user\u0027s requested workflow, use `compare` instead of forcing a mechanism diagram.
+especially when an alternative changes the user's requested workflow, use `compare` instead of forcing a mechanism diagram.
 
 ## Steps
 

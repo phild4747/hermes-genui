@@ -56,11 +56,11 @@ ASKS_FIRST = ("trip-planner", "what-if", "learn", "tracker")
 
 
 # Explain has static flow, interactive flow, and simulation examples.
-# Compare has a default visible comparison and an optional detailed layout.
+# Compare has a default, architecture and optional detailed layout.
 # Assistant and Today recipes listed below do not draw layout examples.
 LAYOUT_EXAMPLES = {
     "explain": 3,
-    "compare": 2,
+    "compare": 3,
     "today-page": 0,
     "personal-assistant": 0,
     "assistant-check": 0,
@@ -108,15 +108,35 @@ def test_dashboard_recipe_says_to_ask_with_one_form_first():
     assert "if key inputs are unknown, ask with one form first" in text.lower()
 
 
-def test_compare_shows_cards_and_one_line_not_a_bar_chart_per_metric():
+def test_compare_keeps_deciding_criteria_visible():
     text = (ROOT / "recipes" / "compare" / "SKILL.md").read_text(encoding="utf-8")
     examples = [json.loads(e) for e in JSON_BLOCK.findall(text)]
-    assert any(block["type"] == "table" for block in examples[0]), "compare visibly by default"
-    tabs = next(block for block in examples[1] if block["type"] == "tabs")
-    compare = next(tab for tab in tabs["tabs"] if tab["label"] == "Compare")["children"]
-    assert [block["type"] for block in compare] == ["kpis", "table", "chart"]
-    assert compare[2]["kind"] == "line" and compare[2]["unit"] == "%"
-    assert all("trend" in item for item in compare[0]["items"])
+    for example in (examples[0], examples[2]):
+        kinds = [b["type"] for b in example]
+        assert "table" in kinds
+        assert not any(b["type"] == "flow" for b in _walk(example))
+        if "tabs" in kinds:
+            assert kinds.index("table") < kinds.index("tabs")
+            tabs = next(b for b in example if b["type"] == "tabs")
+            assert all(tab["label"] != "Compare" for tab in tabs["tabs"])
+            assert all(b["type"] not in ("table", "flow", "chart")
+                       for tab in tabs["tabs"] for b in _walk(tab["children"]))
+    charts = [b for b in examples[2] if b["type"] == "chart"]
+    assert len(charts) == 1, "one comparable trend, not a chart per metric"
+    assert charts[0]["kind"] == "line" and charts[0]["unit"] == "%"
+
+
+def test_compare_shows_architectures_together():
+    text = (ROOT / "recipes" / "compare" / "SKILL.md").read_text(encoding="utf-8")
+    example = json.loads(JSON_BLOCK.findall(text)[1])
+    columns = next(b for b in example if b["type"] == "columns")
+    flows = columns["children"]
+    assert len(flows) == 2
+    assert all(b["type"] == "flow" and b["direction"] == "down" for b in flows)
+    assert all(2 <= len(b["nodes"]) <= 10 for b in flows)
+    assert flows[0]["title"] != flows[1]["title"]
+    assert not any(b["type"] in ("tabs", "steps") for b in _walk(example))
+    assert check_blocks(example) == []
 
 
 SENTENCE_END = re.compile(r"[.!?](?:\s|$)")

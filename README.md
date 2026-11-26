@@ -439,7 +439,7 @@ dashboard's refresh schedule, the model asks you before putting any of them back
   the plugin's other tools;
 - a block's fields and example, from `block_guide`, only when the model is about to draw that block;
 - a one-line reminder next to messages that ask for something visual. This is added only where boards draw;
-- a recipe, only when your request matches one.
+- a recipe, only when your request matches one (for example, comparison layout guidance for architecture and specification comparisons).
 
 **Safety by design:**
 - **The model never sends code.** It sends data only: no HTML, scripts or SVG. Every block is drawn by the plugin's

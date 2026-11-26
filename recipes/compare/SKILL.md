@@ -21,7 +21,8 @@ For one stock in depth, use `stock-dashboard`; for 5 or more options, a ranked `
    - For ordinary specs, prices and features, use a `table`; for qualitative tradeoffs, use concise text cards in `columns`.
    - When two systems differ materially in architecture, data movement or processing stages, use a top-level
      `columns` block with two static `flow` children, `direction: "down"`, and comparable stages. Columns stack on
-     narrow screens. Use short labels and notes for caveats; never imply optional stages are mandatory.
+     narrow screens. Limit labels to 40 characters and omit icons.
+     Use notes for caveats; never imply optional stages are mandatory.
      Add a small table or text only for deciding tradeoffs the flows do not show. Do not add flows for specs alone.
    - For stocks, include `{"type": "include", "id": "<market_history id>"}`; do not duplicate its price cards or chart.
    - Tabs are optional deep dives for substantial unique detail, never a home for essential tradeoffs.

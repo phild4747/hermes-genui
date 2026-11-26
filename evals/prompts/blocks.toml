@@ -419,3 +419,55 @@ id = "table-no-answer"
 text = "Survey responses by team: Eng 12, Sales blank because nobody answered, Support 7, Design 4. Keep the blank visibly blank."
 expect = "table"
 from = "#22"
+
+# Architecture comparisons
+
+[[prompt]]
+id = "architecture-memory"
+text = """
+Compare Mnemosyne and ZeroMem as memory providers.
+Mnemosyne manages structured memories, optional
+consolidation and hybrid retrieval. ZeroMem stores
+original conversation turns and retrieves evidence
+using graph, temporal, lexical and vector indexes.
+Explain how they work and their tradeoffs using
+these supplied facts.
+"""
+expect = "columns"
+also = ["flow"]
+
+[[prompt]]
+id = "architecture-inference"
+text = """
+Compare local and cloud AI inference. Local inference
+processes prompts on the user's computer using local
+compute and memory. Cloud inference sends prompts
+to a remote service and returns generated results.
+Explain the differences in processing, privacy,
+resource requirements and operational tradeoffs.
+"""
+expect = "columns"
+also = ["flow"]
+
+[[prompt]]
+id = "specifications-gpu"
+text = """
+Compare two illustrative Intel Arc and AMD GPU
+configurations using only these hypothetical specs:
+Arc: $250, 12 GB memory, 190 W.
+AMD: $300, 16 GB memory, 210 W.
+Compare price, memory capacity and power.
+These are fictional configurations, not market data.
+"""
+expect = "table"
+
+[[prompt]]
+id = "pricing-backup"
+text = """
+Compare two hypothetical cloud backup subscriptions.
+Plan A costs $6 monthly with 1 TB storage and
+free restores. Plan B costs $9 monthly with 2 TB
+storage and a $5 restore fee. Compare their value
+for someone storing 800 GB.
+"""
+expect = "table"

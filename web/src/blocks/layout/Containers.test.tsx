@@ -11,6 +11,28 @@ afterEach(cleanup);
 const example = (kind: string) => catalog.blocks.find((b) => b.kind === kind)!.example;
 
 describe("columns", () => {
+  it("draws two architecture flows in separate columns", () => {
+    const flow = (title: string, prefix: string) => ({
+      type: "flow", title, direction: "down",
+      nodes: [
+        { id: `${prefix}-input`, label: "Input" },
+        { id: `${prefix}-output`, label: "Output" },
+      ],
+    });
+    const blocks = readBlocks([{
+      type: "columns", children: [flow("Local", "local"), flow("Hosted", "hosted")],
+    }]);
+    const { container } = render(<Blocks blocks={blocks} />);
+    const cells = container.querySelectorAll(".hb-columns > .hb-column");
+    expect(cells.length).toBe(2);
+    for (const cell of cells) {
+      expect(cell.querySelector(".hb-flow-down")).toBeTruthy();
+      expect(cell.querySelectorAll(".hb-flow-node").length).toBe(2);
+    }
+    expect(cells[0].textContent).toContain("Local");
+    expect(cells[1].textContent).toContain("Hosted");
+  });
+
   it("draws each child in its own column", () => {
     const { container } = render(<Blocks blocks={readBlocks([example("columns")])} />);
     expect(container.querySelectorAll(".hb-columns > .hb-column").length).toBe(2);

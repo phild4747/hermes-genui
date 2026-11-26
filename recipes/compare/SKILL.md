@@ -13,28 +13,21 @@ For one stock in depth, use `stock-dashboard`; for 5 or more options, a ranked `
 
 ## Steps
 
-1. **Get the facts.** Use what the user gave, then web search for prices and specs. For stocks, call
-   `market_history` with the symbols comma separated (`"TCS, INFY"`, up to 3) and keep the board id it returns.
-   Note where each number came from. Never guess a number; write "not found" instead.
-2. **Pick 2-5 deciding criteria** that suit the question (e.g. storage ownership, sharing and effort for a workflow;
-   price, battery and updates for phones). Use the same criteria for each option. Do not invent numeric KPIs.
-3. **Make the comparison visible immediately.** With one `show_blocks` call, prefer:
-   - a `heading` naming the decision;
-   - a `table` with options as rows and key criteria as columns (or a `columns` block with concise option
-     text cards when qualitative distinctions need more room);
-   - a concise recommendation after the comparison, with the key assumption or caveat;
-   - a `source` line for outside facts.
-   - For stocks, put `{"type": "include", "id": "<market_history id>"}` on the board using the id from step 1.
-     Its board already contains the price cards and % change line; do not duplicate them.
-   - Use `tabs` only for optional deep dives when each option has substantial unique detail. Never put the
-     essential side-by-side comparison behind a Compare tab.
-   - Add `kpis` only for sourced numeric values that matter; add a chart only when real comparable trends
-     materially change the decision. Do not manufacture metrics or a chart to fill a template.
-   - State the verdict once, close to the tradeoffs. Do not repeat it in the opening reply, a highlighted callout,
-     and closing prose. Save prominent callouts for material risks or exceptions.
-   - For short procedural next steps, use concise reply text or a numbered checklist. Avoid decorative list cards
-     whose avatar initials or icons have no meaning; do not create a second large board for a few routine steps.
-   - Avoid repeating the same points in tabs, tables, callouts and reply prose.
+1. **Get the facts.** Reuse available evidence; research missing facts. For stocks, call `market_history`
+   with up to 3 comma-separated symbols ("TCS, INFY") and keep its board id. Cite numbers; never guess.
+2. **Pick 2-5 deciding criteria** and apply them consistently to every option. Do not invent numeric KPIs.
+3. **Make the comparison visible immediately.** Use one `show_blocks` call with a heading, the appropriate layout,
+   a concise recommendation with its key caveat, and sources for outside facts.
+   - For ordinary specs, prices and features, use a `table`; for qualitative tradeoffs, use concise text cards in `columns`.
+   - When two systems differ materially in architecture, data movement or processing stages, use a top-level
+     `columns` block with two static `flow` children, `direction: "down"`, and comparable stages. Columns stack on
+     narrow screens. Use short labels and notes for caveats; never imply optional stages are mandatory.
+     Add a small table or text only for deciding tradeoffs the flows do not show. Do not add flows for specs alone.
+   - For stocks, include `{"type": "include", "id": "<market_history id>"}`; do not duplicate its price cards or chart.
+   - Tabs are optional deep dives for substantial unique detail, never a home for essential tradeoffs.
+   - Use sourced `kpis` only when useful, and charts only for real comparable trends that matter.
+   - State the verdict once, after tradeoffs. Reserve callouts for material risks. Avoid repeating the board in prose.
+   - Use concise text or a numbered checklist for short next steps, not decorative cards or a second large board.
 4. **Reply** with one sentence, then the tag on its own line.
 
 ## Recommended default (two approaches to a workflow)
@@ -49,45 +42,52 @@ For one stock in depth, use `stock-dashboard`; for 5 or more options, a ranked `
 ]
 ```
 
-## Optional deeper-dive layout (two phones the user is choosing between)
+## Architecture comparison
+
+Illustrative local vs hosted processing. Use static flows unless the user requests a walkthrough.
 
 ```json
 [
-  {"type": "heading", "text": "Pixel 10a vs Nothing Phone 4"},
-  {"type": "tabs", "tabs": [
-    {"label": "Pixel 10a", "children": [
-      {"type": "kpis", "items": [
-        {"label": "Price", "value": 44999, "unit": "₹"},
-        {"label": "Battery", "value": 5100, "unit": "mAh"},
-        {"label": "Updates", "value": 7, "unit": "years"}
-      ]},
-      {"type": "text", "text": "**Best camera** in the range and the longest updates. Slower charging."}
+  {"type": "heading", "text": "Local vs hosted document processing"},
+  {"type": "columns", "children": [
+    {"type": "flow", "title": "Local processing", "direction": "down", "nodes": [
+      {"id": "local-input", "label": "Document"},
+      {"id": "local-engine", "label": "Local processing engine"},
+      {"id": "local-output", "label": "Result on device"}
     ]},
-    {"label": "Nothing Phone 4", "children": [
-      {"type": "kpis", "items": [
-        {"label": "Price", "value": 39999, "unit": "₹"},
-        {"label": "Battery", "value": 5000, "unit": "mAh"},
-        {"label": "Updates", "value": 5, "unit": "years"}
-      ]},
-      {"type": "text", "text": "**Cheaper** with a brighter screen and fast charging. Camera is only OK."}
-    ]},
-    {"label": "Compare", "children": [
-      {"type": "kpis", "items": [
-        {"label": "Pixel 10a", "value": 44999, "unit": "₹", "trend": [47999, 46999, 45999, 44999]},
-        {"label": "Nothing Phone 4", "value": 39999, "unit": "₹", "trend": [44999, 42999, 41999, 39999]}
-      ]},
-      {"type": "table", "caption": "Side by side", "columns": ["Phone", "Price", "Battery", "Updates", "Camera"],
-       "highlight": {"row": 0},
-       "rows": [["Pixel 10a", "₹44,999", "5,100 mAh", "7 years", "Best in class"],
-                ["Nothing Phone 4", "₹39,999", "5,000 mAh", "5 years", "OK"]]},
-      {"type": "chart", "kind": "line", "title": "Price since launch (% change)", "unit": "%", "figure": false,
-       "x": ["Jul", "Aug", "Sep", "Oct"],
-       "series": [{"name": "Pixel 10a", "data": [0, -2.1, -4.2, -6.3]},
-                  {"name": "Nothing Phone 4", "data": [0, -4.4, -6.7, -11.1]}]}
+    {"type": "flow", "title": "Hosted processing", "direction": "down", "nodes": [
+      {"id": "hosted-input", "label": "Document"},
+      {"id": "hosted-engine", "label": "Remote processing service"},
+      {"id": "hosted-output", "label": "Result returned to device"}
     ]}
   ]},
-  {"type": "callout", "tone": "info", "title": "Verdict", "text": "Pixel if photos and long support matter; Nothing if price and charging speed do."},
-  {"type": "source", "text": "store.google.com · nothing.tech · gsmarena.com"}
+  {"type": "table", "columns": ["Approach", "Data movement", "Resources"],
+   "rows": [["Local", "Processing on device", "Local compute"],
+            ["Hosted", "Document sent to service", "Remote compute and network"]]},
+  {"type": "text", "text": "Prefer local if avoiding remote document processing is the priority; hosted may suit devices with limited compute."}
+]
+```
+
+## Optional deeper-dive layout
+
+Illustrative specs and trends, not current product data. Use charts only for sourced trends; tabs hold unique details.
+
+```json
+[
+  {"type": "heading", "text": "Choose between two phones"},
+  {"type": "table", "columns": ["Phone", "Price", "Battery", "Updates"],
+   "rows": [["Phone A", "$499", "5,100 mAh", "7 years"],
+            ["Phone B", "$399", "5,000 mAh", "5 years"]]},
+  {"type": "chart", "kind": "line", "title": "Illustrative price change (%)", "unit": "%", "figure": false,
+   "x": ["Jul", "Aug", "Sep", "Oct"],
+   "series": [{"name": "Phone A", "data": [0, -2.1, -4.2, -6.3]},
+              {"name": "Phone B", "data": [0, -4.4, -6.7, -11.1]}]},
+  {"type": "text", "text": "Phone A if longer support matters; Phone B if minimizing purchase cost matters."},
+  {"type": "tabs", "tabs": [
+    {"label": "Phone A", "children": [{"type": "text", "text": "Check compatibility with existing accessories."}]},
+    {"label": "Phone B", "children": [{"type": "text", "text": "Check regional warranty coverage."}]}
+  ]},
+  {"type": "source", "text": "Illustrative specifications and trends, not current product data"}
 ]
 ```
 
@@ -99,4 +99,4 @@ For one stock in depth, use `stock-dashboard`; for 5 or more options, a ranked `
   `kpis` take up to 4 items; `columns` 2-3 children.
 - Highlight one winner only when the facts make it clear; otherwise leave `highlight` out and say "it depends".
 - No buy or sell advice for stocks.
-- Keep words short around the tag; the tabs carry the detail.
+- Keep words short around the tag; optional tabs must not hide deciding criteria.

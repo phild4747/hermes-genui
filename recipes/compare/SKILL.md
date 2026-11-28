@@ -23,7 +23,8 @@ For one stock in depth, use `stock-dashboard`; for 5 or more options, a ranked `
      `columns` block with two static `flow` children, `direction: "down"`, and comparable stages. Columns stack on
      narrow screens. Limit labels to 40 characters and omit icons.
      Use notes for caveats; never imply optional stages are mandatory.
-     Add a small table or text only for deciding tradeoffs the flows do not show. Do not add flows for specs alone.
+     Use concise text for a few remaining tradeoffs, or a small table for several deciding criteria.
+     Avoid repeating what the flows show. Do not add flows for specs alone.
    - For stocks, include `{"type": "include", "id": "<market_history id>"}`; do not duplicate its price cards or chart.
    - Tabs are optional deep dives for substantial unique detail, never a home for essential tradeoffs.
    - Use sourced `kpis` only when useful, and charts only for real comparable trends that matter.
@@ -62,10 +63,7 @@ Illustrative local vs hosted processing. Use static flows unless the user reques
       {"id": "hosted-output", "label": "Result returned to device"}
     ]}
   ]},
-  {"type": "table", "columns": ["Approach", "Data movement", "Resources"],
-   "rows": [["Local", "Processing on device", "Local compute"],
-            ["Hosted", "Document sent to service", "Remote compute and network"]]},
-  {"type": "text", "text": "Prefer local if avoiding remote document processing is the priority; hosted may suit devices with limited compute."}
+  {"type": "text", "text": "Prefer local for sensitive documents if the device has enough compute and memory; hosted may suit limited devices when network dependence and remote document handling are acceptable."}
 ]
 ```
 

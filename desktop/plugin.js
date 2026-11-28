@@ -711,16 +711,25 @@ function stateIn(answer) {
 }
 function loadBoardState(rest, blockId) {
   const known = boards.get(blockId);
-  if (known) return known.loaded;
-  const board = { state: {}, loaded: Promise.resolve({}), saving: Promise.resolve(), ready: false };
-  board.loaded = rest(`/blocks/${blockId}/state`).then(
+  if (known && !known.released) return known.loaded;
+  const board = {
+    state: {},
+    loaded: Promise.resolve({}),
+    // Carry outstanding writes through repeated reopenings.
+    saving: known?.saving ?? Promise.resolve(),
+    ready: false,
+    released: false
+  };
+  const fetchState = () => rest(`/blocks/${blockId}/state`);
+  const request = known ? known.saving.then(fetchState) : fetchState();
+  board.loaded = request.then(
     (answer) => {
       Object.assign(board.state, stateIn(answer));
       board.ready = true;
       return board.state;
     },
     () => {
-      boards.delete(blockId);
+      if (boards.get(blockId) === board) boards.delete(blockId);
       return {};
     }
   );
@@ -732,12 +741,22 @@ function peekState(blockId) {
   return board !== void 0 && board.ready ? board.state : null;
 }
 async function saveBoardValue(rest, blockId, key, value) {
-  await loadBoardState(rest, blockId);
+  const loaded = loadBoardState(rest, blockId);
   const board = boards.get(blockId);
   if (!board) return;
-  board.state[key] = value;
-  const snapshot = { ...board.state };
-  board.saving = board.saving.then(() => rest(`/blocks/${blockId}/state`, { method: "PUT", body: { state: snapshot } })).then(() => {
+  const snapshot = loaded.then(() => {
+    if (!board.ready) return void 0;
+    board.state[key] = value;
+    return { ...board.state };
+  });
+  board.saving = board.saving.then(async () => {
+    const state = await snapshot;
+    if (state === void 0) return;
+    await rest(`/blocks/${blockId}/state`, {
+      method: "PUT",
+      body: { state }
+    });
+  }).then(() => {
   }, () => {
   });
   await board.saving;
@@ -788,6 +807,8 @@ function forgetBlock(blockId) {
     timers.delete(key);
     void saveBoardValue(item.rest, blockId, key.slice(prefix.length), item.value);
   }
+  const board = boards.get(blockId);
+  if (board !== void 0) board.released = true;
   living.delete(blockId);
   migratedWalk.delete(blockId);
 }
@@ -839,14 +860,16 @@ async function promoteOnUpdate(rest, blockId, prev, next) {
     }
   });
   if (rest === void 0) return;
+  const loading = loadBoardState(rest, blockId);
   const board = boards.get(blockId);
-  if (board !== void 0 && board.ready) {
+  if (board === void 0) return;
+  if (board.ready && !board.released) {
     fileDoor(board, blockId, rest, next, trails);
     return;
   }
-  await loadBoardState(rest, blockId);
-  const now = boards.get(blockId);
-  if (now !== void 0) fileDoor(now, blockId, rest, next, trails);
+  await loading;
+  if (boards.get(blockId) !== board || board.released || !board.ready) return;
+  fileDoor(board, blockId, rest, next, trails);
 }
 function fileDoor(board, blockId, rest, next, trails) {
   const state = board.state;
@@ -895,9 +918,12 @@ async function migrateArchived(rest, blockId, loadVersion, next, version2) {
   if (rest === void 0 || version2 < 2) return;
   if ((migratedWalk.get(blockId) ?? 0) >= version2) return;
   migratedWalk.set(blockId, version2);
-  await loadBoardState(rest, blockId);
+  const loading = loadBoardState(rest, blockId);
   const board = boards.get(blockId);
-  if (board === void 0 || !board.ready) return;
+  if (board === void 0) return;
+  const isCurrent = () => boards.get(blockId) === board && !board.released;
+  await loading;
+  if (!isCurrent() || !board.ready) return;
   const state = board.state;
   const here = /* @__PURE__ */ new Set();
   eachSlot(next, (_block, full) => here.add(full));
@@ -960,6 +986,7 @@ async function migrateArchived(rest, blockId, loadVersion, next, version2) {
   };
   let dirty = false;
   for (const key of orphans) {
+    if (!isCurrent()) return;
     const value = state[key];
     let chain;
     let field = "";
@@ -1003,12 +1030,13 @@ async function migrateArchived(rest, blockId, loadVersion, next, version2) {
     }
     if (lost || !here.has(cur)) continue;
     const target = kkey(cur + field);
+    if (!isCurrent()) return;
     if (state[target] === void 0) {
       state[target] = value;
       dirty = true;
     }
   }
-  if (!dirty) return;
+  if (!dirty || !isCurrent()) return;
   const snapshot = { ...state };
   board.saving = board.saving.then(() => rest(`/blocks/${blockId}/state`, { method: "PUT", body: { state: snapshot } })).then(() => {
   }, () => {
@@ -1055,7 +1083,19 @@ function useStoredValue(spec) {
       const saved = seedValue(state, doorKey);
       if (saved === void 0) return;
       const revived = spec.revive(saved);
-      if (revived !== null) setValue(revived);
+      if (revived !== null) {
+        setValue(revived);
+        if (idKey !== null) {
+          recordValue(
+            void 0,
+            blockId,
+            idKey,
+            doorKey,
+            spec.stored(revived),
+            "never"
+          );
+        }
+      }
     });
     return () => {
       live = false;

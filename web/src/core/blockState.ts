@@ -92,7 +92,15 @@ export function useStoredValue<T>(spec: Stored<T>): [T, (next: T, touched?: bool
       const saved = seedValue(state, doorKey);
       if (saved === undefined) return;
       const revived = spec.revive(saved);
-      if (revived !== null) setValue(revived);
+      if (revived !== null) {
+        setValue(revived);
+        // Keep the page's mirror in step with the accepted server answer,
+        // without sending another write to the door.
+        if (idKey !== null) {
+          recordValue(undefined, blockId, idKey, doorKey,
+            spec.stored(revived), "never");
+        }
+      }
     });
     return () => {
       live = false;

@@ -5,7 +5,7 @@
 // and store.update leave on disk in the app.
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { forgetBoards } from "../blocks/checklist/savedState";
+import { forgetBoards, peekStored } from "../blocks/checklist/savedState";
 import { BlockActions, type Rest } from "./actions";
 import { BlockTag } from "./BlockTag";
 
@@ -231,5 +231,99 @@ describe("board-held transient answers", () => {
     await waitFor(() => expect(container.textContent).toContain("v2"));
     expect(container.querySelector(".hb-calc")).toBe(calcNode);  // the same element, never a remount
     expect((container.querySelector("input[type=range]") as HTMLInputElement).value).toBe(movedValue);
+  });
+});
+
+
+describe("reopened board state", () => {
+  it("restores checklist changes made while the board was closed", async () => {
+    const id = "e4c5f688";
+    const d = door();
+
+    d.boards.set(id, [CHECKLIST]);
+    d.state.set(id, { "0": [0] });
+
+    const first = mountTag(id, d);
+
+    await waitFor(() => expect(
+      screen.getByRole("checkbox", { name: /Passport/ })
+        .getAttribute("aria-checked")
+    ).toBe("true"));
+
+    first.unmount();
+
+    // Another device changes the saved checklist.
+    d.state.set(id, { "0": [1] });
+
+    mountTag(id, d);
+
+    await waitFor(() => expect(
+      screen.getByRole("checkbox", { name: /Tickets/ })
+        .getAttribute("aria-checked")
+    ).toBe("true"));
+
+    expect(
+      screen.getByRole("checkbox", { name: /Passport/ })
+        .getAttribute("aria-checked")
+    ).toBe("false");
+
+    expect(d.puts).toHaveLength(0);
+  });
+
+  it("refreshes both the calculator and its local state mirror", async () => {
+    const id = "e4c5f689";
+    const d = door();
+
+    const calc = {
+      type: "calculator",
+      title: "Trip",
+      inputs: [
+        { id: "n", label: "Nights", value: 2, min: 1, max: 10, step: 1 },
+      ],
+      outputs: [],
+    };
+
+    d.boards.set(id, [calc]);
+
+    const first = mountTag(id, d);
+
+    await waitFor(() => expect(
+      first.container.querySelector("input[type=range]")
+    ).toBeTruthy());
+
+    const slider = first.container.querySelector(
+      "input[type=range]"
+    ) as HTMLInputElement;
+
+    fireEvent.change(slider, { target: { value: "6" } });
+
+    await waitFor(() => expect(
+      Object.keys(d.state.get(id) ?? {}).some(k => k.startsWith("k:"))
+    ).toBe(true));
+
+    const key = Object.keys(d.state.get(id)!)
+      .find(k => k.startsWith("k:"))!;
+
+    expect(d.state.get(id)?.[key]).toEqual({ n: 6 });
+
+    first.unmount();
+
+    // Another device moves the slider.
+    d.state.set(id, { [key]: { n: 9 } });
+
+    const writes = d.puts.length;
+    const second = mountTag(id, d);
+
+    await waitFor(() => expect(
+      second.container.querySelector<HTMLInputElement>(
+        "input[type=range]"
+      )?.value
+    ).toBe("9"));
+
+    // The page mirror must agree with the accepted server answer.
+    expect(peekStored(id, key.slice(2))?.value).toEqual({ n: 9 });
+
+    // Restoring state must not write it back to the server.
+    expect(d.puts).toHaveLength(writes);
   });
 });

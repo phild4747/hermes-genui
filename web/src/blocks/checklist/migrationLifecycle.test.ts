@@ -5,6 +5,7 @@ import {
   migrateArchived,
   promoteOnUpdate,
   recordValue,
+  saveBoardValue,
   forgetBlock,
 } from "./savedState";
 
@@ -137,6 +138,55 @@ describe("update promotion lifecycle", () => {
 
     expect(await loadBoardState(rest, id))
       .toEqual({ "0": [1] });
+
+    forgetBlock(id);
+  });
+});
+
+
+describe("save and promotion ordering", () => {
+  it("preserves a same-turn edit during promotion", async () => {
+    const id = "a3000003";
+    let server: Record<string, unknown> = { travel: 340 };
+    const writes: Record<string, unknown>[] = [];
+
+    const rest = vi.fn(async (
+      _path: string,
+      init?: { method?: string; body?: unknown },
+    ) => {
+      if (init?.method === "PUT") {
+        server = {
+          ...(init.body as {
+            state: Record<string, unknown>
+          }).state,
+        };
+        writes.push({ ...server });
+      }
+
+      return { state: { ...server } };
+    });
+
+    await loadBoardState(rest, id);
+
+    // Give promotion an answer to file by identity.
+    recordValue(
+      undefined, id, "abc123:0", "0", [0], "never"
+    );
+
+    // Start both operations in the same turn.
+    const saving = saveBoardValue(rest, id, "travel", 1450);
+    const promoting = promoteOnUpdate(rest, id, [], []);
+
+    await Promise.all([saving, promoting]);
+
+    // Reopening waits for both registered writes.
+    forgetBlock(id);
+    const reopened = await loadBoardState(rest, id);
+
+    expect(writes).toHaveLength(2);
+    expect(server.travel).toBe(1450);
+    expect(reopened.travel).toBe(1450);
+    expect(reopened["k:abc123:0"]).toEqual([0]);
 
     forgetBlock(id);
   });

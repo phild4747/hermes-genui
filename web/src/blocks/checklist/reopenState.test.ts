@@ -291,3 +291,249 @@ describe("asynchronous board handoffs", () => {
     expect(rest).toHaveBeenCalledTimes(2);
   });
 });
+
+
+describe("failed save recovery", () => {
+  beforeEach(() => forgetBoards());
+
+  it("preserves an unsaved edit without masking unrelated server changes", async () => {
+    const id = "e4c5f690";
+    let server = { travel: 340, other: 7 };
+
+    const rest = vi.fn(async (
+      _path: string,
+      init?: { method?: string; body?: unknown },
+    ) => {
+      if (init?.method === "PUT") {
+        throw new Error("Save failed");
+      }
+      return { state: { ...server } };
+    });
+
+    await loadBoardState(rest, id);
+    await saveBoardValue(rest, id, "travel", 1450);
+
+    forgetBlock(id);
+
+    // Another client changes an unrelated value.
+    server = { travel: 340, other: 9 };
+
+    const reopened = await loadBoardState(rest, id);
+
+    expect(
+      rest.mock.calls.filter(
+        ([, init]) => init?.method === "PUT"
+      )
+    ).toHaveLength(1);
+
+    expect(server.travel).toBe(340);
+    expect(reopened.other).toBe(9);
+    expect(reopened.travel).toBe(1450);
+  });
+
+  it("accepts fresh server values after a subsequent successful save", async () => {
+    const id = "e4c5f691";
+    let server: Record<string, unknown> = { travel: 340 };
+    let fail = true;
+
+    const rest = vi.fn(async (
+      _path: string,
+      init?: { method?: string; body?: unknown },
+    ) => {
+      if (init?.method === "PUT") {
+        if (fail) throw new Error("Save failed");
+
+        server = {
+          ...(init.body as {
+            state: Record<string, unknown>
+          }).state,
+        };
+      }
+
+      return { state: { ...server } };
+    });
+
+    await loadBoardState(rest, id);
+    await saveBoardValue(rest, id, "travel", 1450);
+
+    fail = false;
+
+    await saveBoardValue(rest, id, "travel", 1600);
+    expect(server.travel).toBe(1600);
+
+    forgetBlock(id);
+
+    // Another client changes the successfully saved value.
+    server = { travel: 1800 };
+
+    expect(await loadBoardState(rest, id))
+      .toEqual({ travel: 1800 });
+  });
+});
+
+
+describe("failed save reconciliation edge cases", () => {
+  beforeEach(() => forgetBoards());
+
+  it.each([
+    ["remote conflict", "e4c5f692", 1800],
+    ["lost acknowledgement", "e4c5f693", 1450],
+  ] as const)("reconciles a %s", async (_scenario, id, remote) => {
+    let server = { travel: 340 };
+
+    const rest = vi.fn(async (
+      _path: string,
+      init?: { method?: string; body?: unknown },
+    ) => {
+      if (init?.method === "PUT") {
+        throw new Error("Save failed");
+      }
+      return { state: { ...server } };
+    });
+
+    await loadBoardState(rest, id);
+    await saveBoardValue(rest, id, "travel", 1450);
+
+    forgetBlock(id);
+    server = { travel: remote };
+
+    expect(await loadBoardState(rest, id))
+      .toEqual({ travel: remote });
+
+    // Reconciled edits must not reappear on later openings.
+    forgetBlock(id);
+    server = { travel: 340 };
+
+    expect(await loadBoardState(rest, id))
+      .toEqual({ travel: 340 });
+
+    expect(
+      rest.mock.calls.filter(
+        ([, init]) => init?.method === "PUT"
+      )
+    ).toHaveLength(1);
+  });
+
+  it("retains failed edits through a failed refresh", async () => {
+    const id = "e4c5f694";
+    let offline = false;
+
+    const rest = vi.fn(async (
+      _path: string,
+      init?: { method?: string; body?: unknown },
+    ) => {
+      if (offline || init?.method === "PUT") {
+        throw new Error("Offline");
+      }
+      return { state: { travel: 340, other: 7 } };
+    });
+
+    await loadBoardState(rest, id);
+    await saveBoardValue(rest, id, "travel", 1450);
+
+    forgetBlock(id);
+
+    offline = true;
+    expect(await loadBoardState(rest, id)).toEqual({});
+
+    offline = false;
+
+    expect(await loadBoardState(rest, id))
+      .toEqual({ travel: 1450, other: 7 });
+  });
+
+  it("carries a pending save failure through rapid reopenings", async () => {
+    const id = "e4c5f695";
+
+    let rejectPut!: (reason: Error) => void;
+    const pendingPut = new Promise<unknown>((_resolve, reject) => {
+      rejectPut = reject;
+    });
+
+    let startPut!: () => void;
+    const started = new Promise<void>(resolve => {
+      startPut = resolve;
+    });
+
+    const rest = vi.fn(async (
+      _path: string,
+      init?: { method?: string; body?: unknown },
+    ) => {
+      if (init?.method === "PUT") {
+        startPut();
+        return pendingPut;
+      }
+      return { state: { travel: 340 } };
+    });
+
+    await loadBoardState(rest, id);
+
+    const saving = saveBoardValue(rest, id, "travel", 1450);
+    await started;
+
+    forgetBlock(id);
+    const first = loadBoardState(rest, id);
+
+    forgetBlock(id);
+    const second = loadBoardState(rest, id);
+
+    rejectPut(new Error("Save failed"));
+
+    await saving;
+
+    expect(await first).toEqual({ travel: 1450 });
+    expect(await second).toEqual({ travel: 1450 });
+
+    expect(
+      rest.mock.calls.filter(
+        ([, init]) => init?.method === "PUT"
+      )
+    ).toHaveLength(1);
+  });
+
+  it("clears failed edits included in a later successful whole-board save", async () => {
+    const id = "e4c5f696";
+    let server: Record<string, unknown> = {
+      travel: 340,
+      other: 7,
+    };
+
+    let fail = true;
+
+    const rest = vi.fn(async (
+      _path: string,
+      init?: { method?: string; body?: unknown },
+    ) => {
+      if (init?.method === "PUT") {
+        if (fail) throw new Error("Save failed");
+
+        server = {
+          ...(init.body as {
+            state: Record<string, unknown>
+          }).state,
+        };
+      }
+
+      return { state: { ...server } };
+    });
+
+    await loadBoardState(rest, id);
+    await saveBoardValue(rest, id, "travel", 1450);
+
+    forgetBlock(id);
+
+    expect(await loadBoardState(rest, id))
+      .toEqual({ travel: 1450, other: 7 });
+
+    fail = false;
+    await saveBoardValue(rest, id, "other", 9);
+
+    expect(server).toEqual({ travel: 1450, other: 9 });
+
+    forgetBlock(id);
+    server = { travel: 1800, other: 10 };
+
+    expect(await loadBoardState(rest, id))
+      .toEqual({ travel: 1800, other: 10 });
+  });
+});

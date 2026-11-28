@@ -58,8 +58,7 @@ const loadFor = (d: Door) => async (id: string) => {
   return board === undefined ? { error: "not found" } : answerOf(board);
 };
 
-function mountTag(id: string, d: Door, scope = "s1") {
-  const rest = restFor(d);
+function mountTag(id: string, d: Door, scope = "s1", rest = restFor(d)) {
   return render(
     <BlockActions.Provider value={{ send: async () => "nowhere", fill: () => {}, rest, sessionScope: scope }}>
       <BlockTag id={id} streaming={false} load={loadFor(d)} />
@@ -325,5 +324,68 @@ describe("reopened board state", () => {
 
     // Restoring state must not write it back to the server.
     expect(d.puts).toHaveLength(writes);
+  });
+});
+
+
+describe("failed checklist save recovery", () => {
+  it("preserves a failed checklist edit on reopening", async () => {
+    const id = "e4c5f697";
+    const d = door();
+
+    d.boards.set(id, [CHECKLIST]);
+    d.state.set(id, { "0": [0] });
+
+    const normalRest = restFor(d);
+    let attempts = 0;
+    let reads = 0;
+
+    const rest: Rest = async (path, init) => {
+      if (init?.method === "PUT") {
+        attempts++;
+        throw new Error("Save failed");
+      }
+      if (path.endsWith("/state")) reads++;
+      return normalRest(path, init);
+    };
+
+    const checked = (name: string) =>
+      screen.getByRole("checkbox", { name })
+        .getAttribute("aria-checked");
+
+    const first = mountTag(id, d, "s1", rest);
+
+    await waitFor(() => expect(checked("Passport")).toBe("true"));
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Tickets" }));
+
+    await waitFor(() => expect(attempts).toBe(1));
+    expect(checked("Tickets")).toBe("true");
+
+    first.unmount();
+
+    const second = mountTag(id, d, "s1", rest);
+
+    await waitFor(() => expect(reads).toBe(2));
+    await act(async () => {});
+
+    expect(checked("Passport")).toBe("true");
+    expect(checked("Tickets")).toBe("true");
+    expect(d.state.get(id)).toEqual({ "0": [0] });
+    expect(attempts).toBe(1);
+
+    second.unmount();
+
+    // A genuine same-field remote change takes precedence.
+    d.state.set(id, { "0": [1] });
+
+    mountTag(id, d, "s1", rest);
+
+    await waitFor(() => {
+      expect(reads).toBe(3);
+      expect(checked("Passport")).toBe("false");
+      expect(checked("Tickets")).toBe("true");
+    });
+    expect(attempts).toBe(1);
   });
 });

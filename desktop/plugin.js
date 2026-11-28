@@ -709,11 +709,36 @@ function stateIn(answer) {
   if (state && typeof state === "object" && !Array.isArray(state)) return { ...state };
   return {};
 }
+function sameSavedValue(a, b) {
+  if (a === b) return true;
+  if (a === null || b === null || typeof a !== "object" || typeof b !== "object" || Array.isArray(a) !== Array.isArray(b)) return false;
+  const left = a;
+  const right = b;
+  const keys = Object.keys(left);
+  return keys.length === Object.keys(right).length && keys.every(
+    (key) => Object.prototype.hasOwnProperty.call(right, key) && sameSavedValue(left[key], right[key])
+  );
+}
+async function writeBoardState(rest, blockId, board, state) {
+  await rest(`/blocks/${blockId}/state`, {
+    method: "PUT",
+    body: { state }
+  });
+  board.confirmed = { ...state };
+  for (const key of board.failedEdits.keys()) {
+    if (Object.prototype.hasOwnProperty.call(state, key)) {
+      board.failedEdits.delete(key);
+    }
+  }
+}
 function loadBoardState(rest, blockId) {
   const known = boards.get(blockId);
   if (known && !known.released) return known.loaded;
   const board = {
     state: {},
+    confirmed: {},
+    // Share failed edits across reopenings, including pending writes.
+    failedEdits: known?.failedEdits ?? /* @__PURE__ */ new Map(),
     loaded: Promise.resolve({}),
     // Carry outstanding writes through repeated reopenings.
     saving: known?.saving ?? Promise.resolve(),
@@ -724,12 +749,30 @@ function loadBoardState(rest, blockId) {
   const request = known ? known.saving.then(fetchState) : fetchState();
   board.loaded = request.then(
     (answer) => {
-      Object.assign(board.state, stateIn(answer));
+      const remote = stateIn(answer);
+      board.confirmed = remote;
+      Object.assign(board.state, remote);
+      for (const [key, edit] of board.failedEdits) {
+        const saved = remote[key];
+        if (sameSavedValue(saved, edit.value) || !sameSavedValue(saved, edit.previous)) {
+          if (boards.get(blockId) === board && !board.released) {
+            board.failedEdits.delete(key);
+          }
+        } else {
+          board.state[key] = edit.value;
+        }
+      }
       board.ready = true;
       return board.state;
     },
     () => {
-      if (boards.get(blockId) === board) boards.delete(blockId);
+      if (boards.get(blockId) === board) {
+        if (board.failedEdits.size > 0) {
+          board.released = true;
+        } else {
+          boards.delete(blockId);
+        }
+      }
       return {};
     }
   );
@@ -744,18 +787,23 @@ async function saveBoardValue(rest, blockId, key, value) {
   const loaded = loadBoardState(rest, blockId);
   const board = boards.get(blockId);
   if (!board) return;
-  const snapshot = loaded.then(() => {
+  const takeSnapshot = () => {
     if (!board.ready) return void 0;
     board.state[key] = value;
     return { ...board.state };
-  });
+  };
+  const snapshot = board.ready ? Promise.resolve(takeSnapshot()) : loaded.then(takeSnapshot);
   board.saving = board.saving.then(async () => {
     const state = await snapshot;
     if (state === void 0) return;
-    await rest(`/blocks/${blockId}/state`, {
-      method: "PUT",
-      body: { state }
-    });
+    try {
+      await writeBoardState(rest, blockId, board, state);
+    } catch {
+      board.failedEdits.set(key, {
+        value,
+        previous: board.confirmed[key]
+      });
+    }
   }).then(() => {
   }, () => {
   });
@@ -903,7 +951,7 @@ function fileDoor(board, blockId, rest, next, trails) {
   });
   if (!dirty) return;
   const snapshot = { ...state };
-  board.saving = board.saving.then(() => rest(`/blocks/${blockId}/state`, { method: "PUT", body: { state: snapshot } })).then(() => {
+  board.saving = board.saving.then(() => writeBoardState(rest, blockId, board, snapshot)).then(() => {
   }, () => {
   });
 }
@@ -1038,7 +1086,7 @@ async function migrateArchived(rest, blockId, loadVersion, next, version2) {
   }
   if (!dirty || !isCurrent()) return;
   const snapshot = { ...state };
-  board.saving = board.saving.then(() => rest(`/blocks/${blockId}/state`, { method: "PUT", body: { state: snapshot } })).then(() => {
+  board.saving = board.saving.then(() => writeBoardState(rest, blockId, board, snapshot)).then(() => {
   }, () => {
   });
 }
